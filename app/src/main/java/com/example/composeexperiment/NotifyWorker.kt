@@ -17,20 +17,14 @@ class NotifyWorker(
     private val workParams: WorkerParameters
 ) : CoroutineWorker(context, workParams) {
 
-    private val notificationManager =
-        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     override suspend fun doWork(): Result {
-        val notification = NotificationBuilder.notifyM(context, "NotifyWorker", "Worker")
-        notificationManager.notify(
-            Random.nextInt(), notification
-        )
         askQuestion()
         return Result.success()
     }
 
     private fun askQuestion() {
         val intent = Intent(context, AskAudioService::class.java)
-        context.startService(intent)
+        context.startForegroundService(intent)
     }
 }
