@@ -1,16 +1,9 @@
 package com.example.composeexperiment
 
-import android.annotation.SuppressLint
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import androidx.core.app.NotificationCompat
-import androidx.lifecycle.MutableLiveData
 import androidx.work.CoroutineWorker
-import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.flow.flow
-import kotlin.random.Random
 
 class NotifyWorker(
     private val context: Context,

@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -32,10 +34,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.composeexperiment.feature_gsheet.TestApi
+import com.example.composeexperiment.feature_gsheet.TestData
 import com.example.composeexperiment.ui.theme.ComposeExperimentTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -46,6 +60,7 @@ class MainActivity : ComponentActivity() {
     private var recorder: MediaRecorder? = null
     private var fileName: String = ""
     private val mainViewModel: MainViewModel by viewModels()
+    lateinit var exoPlayer: ExoPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +88,71 @@ class MainActivity : ComponentActivity() {
         }
 
         checkPermission()
+    }
+
+    private fun sendToSheets() = CoroutineScope(Dispatchers.IO).launch {
+        try {
+            TestApi.instance.exportData(TestData("Sudhanshu", "12"))
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "Success", Toast.LENGTH_SHORT).show()
+            }
+        }catch (e:Exception) {
+            withContext(Dispatchers.Main) {
+                Log.e("RishuTest", e.message.toString())
+                Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun setupPlayer(){
+        val url = "https://file-examples.com/storage/fe8c7eef0c6364f6c9504cc/2017/11/file_example_MP3_2MG.mp3"
+        try {
+            exoPlayer = ExoPlayer.Builder(applicationContext)
+                .build()
+                .apply {
+                    val defaultDataSourceFactory = DefaultDataSource.Factory(applicationContext)
+                    val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(
+                        applicationContext,
+                        defaultDataSourceFactory
+                    )
+                    val uri = getAlarmUri()
+                    Log.d("RishuTest", uri.toString())
+                    val source = ProgressiveMediaSource.Factory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri))
+
+                    setMediaSource(source)
+                    prepare()
+                }
+
+            exoPlayer.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    if(state== Player.STATE_READY){
+
+                    }
+                    if(state == Player.STATE_ENDED) {
+
+                    }
+                }
+            })
+            exoPlayer.playWhenReady = true
+        }catch (e:Exception) {
+            Log.d("RishuTest", e.message.toString())
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+
+    }
+
+    private fun getAlarmUri(): Uri {
+        var alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        if (alarmUri == null) {
+            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            if (alarmUri == null) {
+                alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            }
+        }
+        return alarmUri
     }
 
     private fun startRecording() {
@@ -255,7 +335,9 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.size(8.dp))
             Button(
                 onClick = {
-                    onClick(workManager, mTime.value)
+//                    onClick(workManager, mTime.value)
+//                    setupPlayer()
+                    sendToSheets()
                 }
             ) {
                 Text(text = "Start")
@@ -269,6 +351,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(text = "Stop Service")
             }
+            Spacer(modifier = Modifier.size(8.dp))
         }
     }
 }

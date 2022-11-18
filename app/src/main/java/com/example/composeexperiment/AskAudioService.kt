@@ -1,13 +1,11 @@
 package com.example.composeexperiment
 
-import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.IBinder
 import androidx.core.net.toUri
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DataSource
@@ -15,7 +13,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.example.composeexperiment.Constants.ACTION_STOP
-import kotlin.random.Random
+
 
 class AskAudioService: Service() {
 
@@ -27,12 +25,7 @@ class AskAudioService: Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationBuilder.notifyM(this, "NotifyWorker", "Worker")
-        notificationManager.notify(
-            Random.nextInt(), notification
-        )
         startForeground(1, notification)
     }
 
@@ -44,6 +37,17 @@ class AskAudioService: Service() {
         }
         setupPlayer()
         return START_NOT_STICKY
+    }
+
+    private fun getAlarmUri(): Uri {
+        var alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        if (alarmUri == null) {
+            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            if (alarmUri == null) {
+                alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            }
+        }
+        return alarmUri
     }
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -58,7 +62,7 @@ class AskAudioService: Service() {
                     defaultDataSourceFactory
                 )
                 val source = ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .createMediaSource(MediaItem.fromUri(url.toUri()))
+                    .createMediaSource(MediaItem.fromUri(getAlarmUri()))
 
                 setMediaSource(source)
                 prepare()
