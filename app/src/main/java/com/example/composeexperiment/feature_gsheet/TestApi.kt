@@ -12,7 +12,7 @@ interface TestApi {
 
     companion object {
         const val BASE_URL= "https://script.google.com/"
-        const val KEY = "AKfycbwwDj6LuOx-vF0OEqhVqrrWHj-xdvuWFS25n8_HiuMKnoXCmDNOxS20H_dPHh-MkRXg"
+        const val KEY = "AKfycbyPmTi74EaBcP3-MwHYezmolYlfAbyMkbKO6_kFrvYjpyyfx8lpWmE1Nexvtz2Z2611"
         val gson = GsonBuilder()
             .setLenient()
             .create()

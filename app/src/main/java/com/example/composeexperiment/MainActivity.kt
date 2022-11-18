@@ -335,9 +335,8 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.size(8.dp))
             Button(
                 onClick = {
-//                    onClick(workManager, mTime.value)
-//                    setupPlayer()
-                    sendToSheets()
+                    onClick(workManager, mTime.value)
+                    setupPlayer()
                 }
             ) {
                 Text(text = "Start")
