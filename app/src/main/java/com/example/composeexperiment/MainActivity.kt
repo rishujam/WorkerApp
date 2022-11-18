@@ -3,6 +3,7 @@ package com.example.composeexperiment
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -43,9 +45,9 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.composeexperiment.feature_gsheet.TestApi
-import com.example.composeexperiment.feature_gsheet.TestData
+import com.example.composeexperiment.feature_gsheet.*
 import com.example.composeexperiment.ui.theme.ComposeExperimentTheme
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,6 +56,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 class MainActivity : ComponentActivity() {
 
@@ -88,13 +91,14 @@ class MainActivity : ComponentActivity() {
         }
 
         checkPermission()
+        checkPermissionSms()
     }
 
     private fun sendToSheets() = CoroutineScope(Dispatchers.IO).launch {
         try {
-            TestApi.instance.exportData(TestData("Sudhanshu", "12"))
+            val res = TestApi.instance.exportData("Sudhanshu")
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "Success", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Done: $res", Toast.LENGTH_SHORT).show()
             }
         }catch (e:Exception) {
             withContext(Dispatchers.Main) {
@@ -192,6 +196,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun sendSMS(phoneNumber: String, message: String) {
+        val sentPendingIntents = ArrayList<PendingIntent>()
+        val deliveredPendingIntents = ArrayList<PendingIntent>()
+        val sentPI = PendingIntent.getBroadcast(
+            this, 0,
+            Intent(this, SmsSentReceiver::class.java), 0
+        )
+        val deliveredPI = PendingIntent.getBroadcast(
+            this, 0,
+            Intent(this, SmsDeliveredReceiver::class.java), 0
+        )
+        try {
+            val sms: SmsManager = SmsManager.getDefault()
+            val mSMSMessage = sms.divideMessage(message)
+            for (i in 0 until mSMSMessage.size) {
+                sentPendingIntents.add(i, sentPI)
+                deliveredPendingIntents.add(i, deliveredPI)
+            }
+            sms.sendMultipartTextMessage(
+                phoneNumber, null, mSMSMessage,
+                sentPendingIntents, deliveredPendingIntents
+            )
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+            Log.e("RishuTest", e.message.toString())
+            Toast.makeText(this, "SMS sending failed...", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     @SuppressLint("RestrictedApi", "VisibleForTests")
     private fun onClick(workManager: WorkManager, selectedTime: String) {
         val currTime = System.currentTimeMillis()
@@ -248,6 +281,31 @@ class MainActivity : ComponentActivity() {
         }
         return false
     }
+
+    private fun checkPermissionSms() {
+        val requestPermissionLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Permission not granted", Toast.LENGTH_SHORT).show()
+                }
+            }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.SEND_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(this, "Permission already granted", Toast.LENGTH_SHORT).show()
+        } else {
+            requestPermissionLauncher.launch(
+                Manifest.permission.SEND_SMS
+            )
+        }
+    }
+
 
     private fun checkPermission() {
         val requestPermissionLauncher =
@@ -335,8 +393,9 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.size(8.dp))
             Button(
                 onClick = {
-                    onClick(workManager, mTime.value)
-                    setupPlayer()
+//                    onClick(workManager, mTime.value)
+//                    setupPlayer()
+                    sendToSheets()
                 }
             ) {
                 Text(text = "Start")

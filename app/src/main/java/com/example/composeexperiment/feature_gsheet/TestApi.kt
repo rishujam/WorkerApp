@@ -4,15 +4,17 @@ import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import retrofit2.http.Body
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.Query
+
 
 interface TestApi {
 
     companion object {
         const val BASE_URL= "https://script.google.com/"
-        const val KEY = "AKfycbyPmTi74EaBcP3-MwHYezmolYlfAbyMkbKO6_kFrvYjpyyfx8lpWmE1Nexvtz2Z2611"
+        const val KEY = "AKfycbzC8WkTiSmupicdW1o7X4wZ6OJEPFfDl_UHgGsiZwbd_mpwmSMy2MqVn2WXAG0qJtjq"
+
         val gson = GsonBuilder()
             .setLenient()
             .create()
@@ -28,5 +30,7 @@ interface TestApi {
 
     @Headers("Content-Type: application/json")
     @POST("macros/s/$KEY/exec")
-    suspend fun exportData(@Body testData: TestData): String
+    suspend fun exportData(@Query("name") name: String): String
+
+
 }
